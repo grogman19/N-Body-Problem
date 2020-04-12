@@ -1,5 +1,5 @@
 import math
-import random
+import plotly.express as px
 
 class vector:
     def __init__(self, x,y,z):
@@ -12,12 +12,11 @@ class vector:
         self.z += vector_2.z
 
 class body:
-    def __init__(self, position, velocity, mass = 1, id = '', colour = ''):
+    def __init__(self, position, velocity, mass = 1, id = ''):
         self.position = position
         self.velocity = velocity
         self.mass = mass
         self.id = id
-        self.plot_color = colour
 
 # Function to calculate the acceleration of body_1 due to the gravitational attraction of body_2
 def acceleration_calculation(body_1, body_2):
@@ -47,6 +46,7 @@ def position_calculation(body, time_step = 1):
 
 # Function to run the simulation over a list of bodies in a number of time steps of a certain size, plotting each n time steps
 def compute_n_body_problem(bodies, time_step_size = 1, time_steps_number = 10000, frequency = 100):
+    position_data=[[],[],[],[],[]]
     for time_step in range(1,time_steps_number):
         for body_1 in bodies:
             accel_vector = vector(0,0,0)
@@ -55,31 +55,32 @@ def compute_n_body_problem(bodies, time_step_size = 1, time_steps_number = 10000
                     accel_vector.vector_sum(acceleration_calculation(body_1,body_2))
             body_1.velocity = velocity_calculation(body_1,accel_vector,time_step_size)
             body_1.position = position_calculation(body_1,time_step_size)
-        #if time_step % frequency == 0:
-    return bodies
-
-def animate_scatters(iteration, data, scatters):
-    """
-    Update the data held by the scatter plot and therefore animates it.
-    Args:
-        iteration (int): Current iteration of the animation
-        data (list): List of the data positions at each iteration.
-        scatters (list): List of all the scatters (One per element)
-    Returns:
-        list: List of scatters (One per element) with new coordinates
-    """
-    for i in range(data[0].shape[0]):
-        scatters[i]._offsets3d = (data[iteration][i,0:1], data[iteration][i,1:2], data[iteration][i,2:])
-    return scatters
-
-
+            if time_step % frequency == 0:
+                position_data[0].append(body_1.position.x)
+                position_data[1].append(body_1.position.y)
+                position_data[2].append(body_1.position.z)
+                position_data[3].append(body_1.id)
+                position_data[4].append(time_step)
+    return position_data
 
 # Define the data and run the simulation
 if __name__ == "__main__":
     bodies = [
-        body(vector(0,0,0),vector(0,0,0),1,'Star1','r'),
-        body(vector(1,0,0),vector(0,0,0),1,'Star2','b')
+        body(vector(0,0,0),vector(0,0,0),2e30,'Sun'),
+        body(vector(0,-7.78e11,0),vector(-13000,0,0),2e30,'Sun2'),
+        body(vector(0,1.5e11,0),vector(30000,0,0),6e24,'Earth'),
+        body(vector(0,(1.5e11-3.85e8),0),vector(31000,0,0),7.34e22,'Moon')
     ]
-
-    solution = compute_n_body_problem(bodies,100,80000,1000)
+    solution_data = compute_n_body_problem(bodies,100,960000,1000)
+    #fig = px.scatter_3d(x=solution_data[0],y=solution_data[1],z=solution_data[2],color=solution_data[3],animation_frame=solution_data[4])
+    fig = px.line_3d(x=solution_data[0],y=solution_data[1],z=solution_data[2],color=solution_data[3])
+    fig.update_layout(
+    scene = dict(
+        xaxis = dict(nticks=4, range=[min(solution_data[0]),max(solution_data[0])],autorange=False),
+        yaxis = dict(nticks=4, range=[min(solution_data[1]),max(solution_data[1])],autorange=False),
+        zaxis = dict(nticks=4, range=[min(solution_data[2]),max(solution_data[2])],autorange=False),),
+        margin = dict(r=20, l=10, b=10, t=10))
+    fig.update_layout(scene_aspectmode='cube')
+    #fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 10
+    fig.show()
 
